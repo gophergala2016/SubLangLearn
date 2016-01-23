@@ -46,7 +46,7 @@ func ParseSubtitlesFile(filePath string) (*Subtitles, error) {
 			currentLine.Start = parseTime(parts[0])
 			currentLine.Finish = parseTime(parts[1])
 		} else {
-			currentLine.Text = append(currentLine.Text, rawLine)
+			currentLine.Text = append(currentLine.Text, removeHtml(rawLine))
 		}
 	}
 	if currentLine != nil {
@@ -64,4 +64,22 @@ func parseTime(value string) time.Time {
 		result = result.Add(time.Duration(milliseconds) * time.Millisecond)
 	}
 	return result
+}
+
+func removeHtml(value string) string {
+	for _, tag := range []string {"b", "i", "u"} {
+		value = strings.Replace(value, "<" + tag + ">", "", -1)
+		value = strings.Replace(value, "</" + tag + ">", "", -1)
+		value = strings.Replace(value, "{" + tag + "}", "", -1)
+		value = strings.Replace(value, "{/" + tag + "}", "", -1)
+	}
+	value = strings.Replace(value, "</font>", "", -1)
+	fontIndex := strings.Index(value, "<font")
+	if fontIndex >= 0 {
+		endIndex := strings.Index(value[fontIndex:], ">")
+		if endIndex >= 0 {
+			value = value[:fontIndex] + value[fontIndex+endIndex+1:]
+		}
+	}
+	return value
 }
