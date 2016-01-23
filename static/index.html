@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Learn Language - Movie and Subtitles</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="bootstrap-theme.min.css">
+
+    <script src="jquery-1.12.0.min.js"></script>
+    <script src="bootstrap.min.js"></script>
+    <script src="knockout-3.4.0.js"></script>
+
+    <script src="script.js"></script>
+</head>
+<body>
+<div data-bind="foreach: subtitles">
+    <div><span data-bind="text: Start"></span><a href="#" data-bind="attr: {'id': Index}" onclick="play(event); return false;">play</a></div>
+    <div data-bind="html: Text"></div>
+</div>
+</body>
+</html>

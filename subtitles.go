@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"strings"
 	"strconv"
+	"path/filepath"
 )
 
 type SubtitleLine struct {
@@ -20,10 +21,34 @@ type Subtitles struct {
 	Lines []*SubtitleLine
 }
 
+type JsonSubtitles struct {
+	FileName string
+	Lines []*JsonSubtitleLine
+}
+
+type JsonSubtitleLine struct {
+	Index int
+	Start string
+	Finish string
+	Text string
+}
+
 var (
 	htmlTags = []string {"b", "i", "u"}
 	bom = "\xEF\xBB\xBF"
 )
+
+func (line *SubtitleLine) toJsonLine(index int) *JsonSubtitleLine {
+	return &JsonSubtitleLine{Index:index, Start:line.Start.Format("15:04:05"), Finish:line.Finish.Format("15:04:05"), Text:strings.Join(line.Text, "<br>")}
+}
+
+func (subs *Subtitles) toJsonSubtitles() *JsonSubtitles {
+	result := &JsonSubtitles{FileName:filepath.Base(subs.FilePath), Lines:make([]*JsonSubtitleLine, len(subs.Lines))}
+	for i, line := range subs.Lines {
+		result.Lines[i] = line.toJsonLine(i)
+	}
+	return result
+}
 
 func ParseSubtitlesFile(filePath string) (*Subtitles, error) {
 	file, err := os.Open(filePath)
