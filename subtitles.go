@@ -20,6 +20,11 @@ type Subtitles struct {
 	Lines []*SubtitleLine
 }
 
+var (
+	htmlTags = []string {"b", "i", "u"}
+	bom = "\xEF\xBB\xBF"
+)
+
 func ParseSubtitlesFile(filePath string) (*Subtitles, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -29,8 +34,14 @@ func ParseSubtitlesFile(filePath string) (*Subtitles, error) {
 	subtitles := &Subtitles{FilePath:filePath}
 	var currentLine *SubtitleLine
 	scanner := bufio.NewScanner(file)
+	isFirstLine := true
 	for scanner.Scan() {
 		rawLine := strings.TrimSpace(scanner.Text())
+		if isFirstLine {
+			rawLine = strings.TrimPrefix(rawLine, bom)
+			isFirstLine = false
+		}
+
 		if rawLine == "" {
 			if currentLine != nil {
 				subtitles.Lines = append(subtitles.Lines, currentLine)
@@ -67,7 +78,11 @@ func parseTime(value string) time.Time {
 }
 
 func removeHtml(value string) string {
-	for _, tag := range []string {"b", "i", "u"} {
+	if !strings.Contains(value, "<") {
+		return value
+	}
+
+	for _, tag := range htmlTags {
 		value = strings.Replace(value, "<" + tag + ">", "", -1)
 		value = strings.Replace(value, "</" + tag + ">", "", -1)
 		value = strings.Replace(value, "{" + tag + "}", "", -1)
