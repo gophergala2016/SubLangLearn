@@ -67,7 +67,7 @@ func socket(w http.ResponseWriter, r *http.Request) {
 }
 
 func getSubtitles(w http.ResponseWriter, r *http.Request) {
-	subtitles, _ = ParseSubtitlesFile(`D:\USERS\FALCON\_video\Frozen.srt`)
+	subtitles, _ = ParseSubtitlesFile(`D:\USERS\FALCON\_video\Frozen 2013 720p EN.srt`)
 	content, _ := json.Marshal(subtitles.toJsonSubtitles())
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(content)

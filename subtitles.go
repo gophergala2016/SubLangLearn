@@ -57,7 +57,7 @@ func ParseSubtitlesFile(filePath string) (*Subtitles, error) {
 	}
 	defer file.Close()
 	subtitles := &Subtitles{FilePath:filePath}
-	var currentLine *SubtitleLine
+	var previousLine, currentLine *SubtitleLine
 	scanner := bufio.NewScanner(file)
 	isFirstLine := true
 	for scanner.Scan() {
@@ -69,7 +69,10 @@ func ParseSubtitlesFile(filePath string) (*Subtitles, error) {
 
 		if rawLine == "" {
 			if currentLine != nil {
-				subtitles.Lines = append(subtitles.Lines, currentLine)
+				if len(subtitles.Lines) == 0 || subtitles.Lines[len(subtitles.Lines)-1] != currentLine {
+					subtitles.Lines = append(subtitles.Lines, currentLine)
+				}
+				previousLine = currentLine
 				currentLine = nil
 			}
 			continue
@@ -79,14 +82,23 @@ func ParseSubtitlesFile(filePath string) (*Subtitles, error) {
 			currentLine = &SubtitleLine{Index:index}
 		} else if strings.Contains(rawLine, "-->") {
 			parts := strings.SplitN(rawLine, "-->", 2)
-			currentLine.Start = parseTime(parts[0])
-			currentLine.Finish = parseTime(parts[1])
+			start := parseTime(parts[0])
+			finish := parseTime(parts[1])
+			if previousLine != nil && start.Sub(previousLine.Finish) < time.Duration(50 * time.Millisecond) {
+				currentLine = previousLine
+				currentLine.Finish = finish
+			} else {
+				currentLine.Start = start
+				currentLine.Finish = finish
+			}
 		} else {
 			currentLine.Text = append(currentLine.Text, removeHtml(rawLine))
 		}
 	}
 	if currentLine != nil {
-		subtitles.Lines = append(subtitles.Lines, currentLine)
+		if subtitles.Lines[len(subtitles.Lines)-1] != currentLine {
+			subtitles.Lines = append(subtitles.Lines, currentLine)
+		}
 	}
 	return subtitles, nil
 }
