@@ -42,9 +42,12 @@ Open page "localhost:2016" (`web_port` from config.ini)
 
 ## Play
 
+If need - select required audio track in VLC Player.
+
 Seek phrases, repeat complex sentences, listen to difficult words, ...
 
 ## Stop
 
 Close VLC Player.
+
 Stop SubLangLearn.exe (Ctrl-C).
