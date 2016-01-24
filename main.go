@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"fmt"
 	"net/http"
 	"github.com/gorilla/websocket"
 	"strconv"
@@ -17,7 +16,7 @@ var (
 )
 
 func main() {
-	main2()
+	launchVlcPlayer()
 	port := 3016
 	http.HandleFunc("/socket", socket)
 	http.HandleFunc("/getSubtitles", getSubtitles)
@@ -26,22 +25,7 @@ func main() {
 	http.ListenAndServe(":" + strconv.Itoa(port), nil)
 }
 
-func main3() {
-	subtitles, err := ParseSubtitlesFile(`D:\USERS\FALCON\_video\Frozen.srt`)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, line := range subtitles.Lines {
-		fmt.Println(line.Index)
-		fmt.Printf("%s --> %s\n", line.Start.Format("15:04:05"), line.Finish.Format("15:04:05"))
-		for _, text := range line.Text {
-			fmt.Println(text)
-		}
-		fmt.Println()
-	}
-}
-
-func main2() {
+func launchVlcPlayer() {
 	player = NewVlcPlayer(`C:\Program Files (x86)\VideoLAN\VLC\vlc.exe`, "localhost", 2016)
 	err := player.Start()
 	if err != nil {
@@ -70,9 +54,22 @@ func getSubtitles(w http.ResponseWriter, r *http.Request) {
 	w.Write(content)
 }
 
+var lastIndex = -1
+var slowSpeed = false
+
 func play(w http.ResponseWriter, r *http.Request) {
 	index, _ := strconv.Atoi(r.FormValue("Index"))
-	//shift, _ := strconv.Atoi(r.FormValue("Shift"))
+	if index == lastIndex {
+		lastIndex = -1
+		slowSpeed = true
+		player.SlowSpeed()
+	} else {
+		lastIndex = index
+		if slowSpeed {
+			slowSpeed = false
+			player.NormalSpeed()
+		}
+	}
 	line := subtitles.Lines[index]
 	parts := strings.SplitN(line.Start.Format("15:04:05"), ":", 3)
 	hours, _ := strconv.Atoi(parts[0])

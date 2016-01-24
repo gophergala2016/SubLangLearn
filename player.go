@@ -58,6 +58,14 @@ func (player *VlcPlayer) Seek(position int) {
 	player.commands <- seekCommand{position:position}
 }
 
+func (player *VlcPlayer) SlowSpeed() {
+	player.commands <- simpleCommand{command:fmt.Sprintf(`slower`), responseLineCount:1}
+}
+
+func (player *VlcPlayer) NormalSpeed() {
+	player.commands <- simpleCommand{command:fmt.Sprintf(`normal`), responseLineCount:1}
+}
+
 func (player *VlcPlayer) Run() {
 	for {
 		select {
