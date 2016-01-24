@@ -4,13 +4,19 @@ function connectSocketServer() {
 
   ws.onmessage = function (evt) {
       var indexes = JSON.parse(evt.data);
+      var isFutureIndex = false;
       for (var i=0; i < indexes.length; i++) {
-          indexes[i] = "#" + indexes[i]
+          var index = indexes[i]
+          if (index < 0) {
+              index = -index - 1;
+              isFutureIndex = true;
+          }
+          indexes[i] = "#" + index
       }
       var selector = indexes.join(", ")
       var newSelected = $(selector)
       selected.css("background-color", "")
-      newSelected.css("background-color", "GreenYellow")
+      newSelected.css("background-color", isFutureIndex ? "LightYellow" : "GreenYellow")
       var offset = newSelected.offset();
       offset.top -= $(window).height() / 2;
       selected = newSelected

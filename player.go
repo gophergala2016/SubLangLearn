@@ -18,19 +18,14 @@ type VlcPlayer struct {
 	cmd *exec.Cmd
 	conn net.Conn
 	connReader *bufio.Reader
-	commands chan playerCommand
+	commands chan PlayerCommand
 
 	Progress chan int
 	position int
 }
 
-type playerCommand struct {
-	command string
-	responseLineCount int
-}
-
 func NewVlcPlayer(exePath string, tcpHost string, tcpPort int) *VlcPlayer {
-	return &VlcPlayer{exePath:exePath, tcpHost:tcpHost, tcpPort:tcpPort, commands:make(chan playerCommand), Progress:make(chan int)}
+	return &VlcPlayer{exePath:exePath, tcpHost:tcpHost, tcpPort:tcpPort, commands:make(chan PlayerCommand), Progress:make(chan int)}
 }
 
 func (player *VlcPlayer) Start() error {
@@ -56,15 +51,11 @@ func (player *VlcPlayer) Start() error {
 }
 
 func (player *VlcPlayer) PlayMovie(moviePath string) {
-	player.commands <- playerCommand{command:fmt.Sprintf(`add "%s"`, moviePath), responseLineCount:2}
+	player.commands <- simpleCommand{command:fmt.Sprintf(`add "%s"`, moviePath), responseLineCount:2}
 }
 
 func (player *VlcPlayer) Seek(position int) {
-	player.commands <- playerCommand{command:fmt.Sprintf("seek %d", position), responseLineCount:1}
-}
-
-func (player *VlcPlayer) Play(position int) {
-	player.commands <- playerCommand{command:fmt.Sprintf("seek %d", position), responseLineCount:1}
+	player.commands <- seekCommand{position:position}
 }
 
 func (player *VlcPlayer) Run() {
@@ -72,10 +63,9 @@ func (player *VlcPlayer) Run() {
 		select {
 		case command := <-player.commands:
 			fmt.Println(command)
-			player.execCommand(command)
+			command.Execute(player)
 		case <-time.After(time.Millisecond * 100):
-			positionResponse := player.execCommand(playerCommand{command:"get_time", responseLineCount:1})
-			positionResponse = strings.TrimSpace(positionResponse)
+			positionResponse := simpleCommand{command:"get_time", responseLineCount:1}.Execute(player)
 			position, _ := strconv.Atoi(positionResponse)
 			if position != player.position {
 				select {
@@ -88,11 +78,11 @@ func (player *VlcPlayer) Run() {
 	}
 }
 
-func (player *VlcPlayer) execCommand(command playerCommand) string {
-	fmt.Fprintln(player.conn, command.command)
+func (player *VlcPlayer) execCommand(command string, responseLineCount int) string {
+	fmt.Fprintln(player.conn, command)
 	output := ""
 	count := 0
-	for count < command.responseLineCount {
+	for count < responseLineCount {
 		line, err := player.connReader.ReadString('\n')
 		if err != nil {
 			break
@@ -103,5 +93,5 @@ func (player *VlcPlayer) execCommand(command playerCommand) string {
 		output += line
 		count++
 	}
-	return output
+	return strings.TrimSpace(output)
 }

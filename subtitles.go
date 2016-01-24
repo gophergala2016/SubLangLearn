@@ -118,7 +118,7 @@ func GetPosition(moment time.Time) int {
 	hours, _ := strconv.Atoi(parts[0])
 	minutes, _ := strconv.Atoi(parts[1])
 	seconds, _ := strconv.Atoi(parts[2])
-	return hours*3600 + minutes*60 + seconds + 1
+	return hours*3600 + minutes*60 + seconds
 }
 
 func removeHtml(value string) string {
