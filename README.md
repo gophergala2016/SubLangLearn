@@ -4,6 +4,7 @@ Watch a movie with foreign audio track, play with subtitles - and learn new lang
 
 It is a simple golang webserver that controls VLC Player via Remote Control. A uses reads subtitles in browser and can jump to previous or next phrases easy.
 
+For me - English is foreign language.
 ![screenshot](https://raw.github.com/gophergala2016/SubLangLearn/master/static/SubLangLearn_sceenshot.png)
 
 ## Prerequisites
