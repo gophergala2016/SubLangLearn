@@ -70,7 +70,6 @@ func (player *VlcPlayer) Run() {
 	for {
 		select {
 		case command := <-player.commands:
-			fmt.Println(command)
 			command.Execute(player)
 		case <-time.After(time.Millisecond * 100):
 			positionResponse := simpleCommand{command:"get_time", responseLineCount:1}.Execute(player)

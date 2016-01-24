@@ -1,8 +1,8 @@
 function connectSocketServer() {
   var support = "MozWebSocket" in window ? 'MozWebSocket' : ("WebSocket" in window ? 'WebSocket' : null);
-  ws = new window[support](location.protocol.replace("http","ws") + "//" + location.host + '/socket');
+  socketClient = new window[support](location.protocol.replace("http","ws") + "//" + location.host + '/socket');
 
-  ws.onmessage = function (evt) {
+  socketClient.onmessage = function (evt) {
       var indexes = JSON.parse(evt.data);
       var isFutureIndex = false;
       for (var i=0; i < indexes.length; i++) {
@@ -25,11 +25,17 @@ function connectSocketServer() {
         scrollLeft: offset.left
       });
   };
+
+  socketClient.onclose = function(event) {
+      socketClient = null;
+  }
 }
 
 var selected = $([]);
 
 var viewModel;
+
+var socketClient;
 
 function init() {
     connectSocketServer()
@@ -54,6 +60,11 @@ function getSubtitles() {
 }
 
 function play(event) {
+    if (!socketClient) {
+        connectSocketServer()
+        getSubtitles()
+    }
+
     $.ajax({
         url: "/play",
         data: {Index: event.target.id, Shift: +viewModel.selectedShift()}

@@ -7,17 +7,36 @@ import (
 	"strconv"
 	"encoding/json"
 	"strings"
+	"path/filepath"
+	"fmt"
+	"os"
 )
 
 var (
 	upgrader = websocket.Upgrader{}
 	subtitles *Subtitles
 	player *VlcPlayer
+	moviePath string
+	subtitlesPath string
+	socketConn *websocket.Conn
 )
 
 func main() {
-	launchVlcPlayer()
-	port := 3016
+	if len(os.Args) != 3 {
+		fmt.Printf("Usage: %s <movie_path> <subtitles_path>\n", filepath.Base(os.Args[0]))
+		return
+	}
+	if strings.HasSuffix(strings.ToLower(filepath.Base(os.Args[1])), ".srt") {
+		moviePath, subtitlesPath = os.Args[2], os.Args[1]
+	} else {
+		moviePath, subtitlesPath = os.Args[1], os.Args[2]
+	}
+
+	config := LoadConfig(filepath.Join(".", "config.ini"))
+	launchVlcPlayer(config.VlcPlayerPath, config.VlcPlayerTcpPort)
+	player.PlayMovie(moviePath)
+	subtitles, _ = ParseSubtitlesFile(subtitlesPath)
+	port := config.WebServerHttpPort
 	http.HandleFunc("/socket", socket)
 	http.HandleFunc("/getSubtitles", getSubtitles)
 	http.HandleFunc("/play", play)
@@ -25,17 +44,14 @@ func main() {
 	http.ListenAndServe(":" + strconv.Itoa(port), nil)
 }
 
-func launchVlcPlayer() {
-	player = NewVlcPlayer(`C:\Program Files (x86)\VideoLAN\VLC\vlc.exe`, "localhost", 2016)
+func launchVlcPlayer(vlcPath string, vlcPort int) {
+	player = NewVlcPlayer(vlcPath, "localhost", vlcPort)
 	err := player.Start()
 	if err != nil {
-		log.Fatalf("Failed to start VLC Player: ", err)
+		log.Fatal("Failed to start VLC Player: ", err)
 	}
 	go player.Run()
-	player.PlayMovie(`D:\USERS\FALCON\_Downloads\FRIENDS (eng+rus+subs)\Season 01\01x01 - The One Where Monica Gets A New Roomate.avi`)
 }
-
-var socketConn *websocket.Conn
 
 func socket(w http.ResponseWriter, r *http.Request) {
 	var err error
@@ -48,7 +64,6 @@ func socket(w http.ResponseWriter, r *http.Request) {
 }
 
 func getSubtitles(w http.ResponseWriter, r *http.Request) {
-	subtitles, _ = ParseSubtitlesFile(`D:\USERS\FALCON\_Downloads\FRIENDS (eng+rus+subs)\Season 01\01x01 - The One Where Monica Gets A New Roomate.srt`)
 	content, _ := json.Marshal(subtitles.toJsonSubtitles())
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(content)
@@ -59,6 +74,10 @@ var slowSpeed = false
 
 func play(w http.ResponseWriter, r *http.Request) {
 	index, _ := strconv.Atoi(r.FormValue("Index"))
+	if subtitles == nil || index >= len(subtitles.Lines) {
+		return
+	}
+
 	if index == lastIndex {
 		lastIndex = -1
 		slowSpeed = true
