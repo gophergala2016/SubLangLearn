@@ -28,7 +28,9 @@ var viewModel;
 function init() {
     connectSocketServer()
     viewModel = {
-        subtitles: ko.observableArray()
+        subtitles: ko.observableArray(),
+        shifts: ko.observableArray(["-2", "-1", "0", "+1", "+2"]),
+        selectedShift : ko.observable("0")
     };
     ko.applyBindings(viewModel);
     getSubtitles()
@@ -48,6 +50,6 @@ function getSubtitles() {
 function play(event) {
     $.ajax({
         url: "/play",
-        data: {Index: event.target.id}
+        data: {Index: event.target.id, Shift: +viewModel.selectedShift()}
     })
 }

@@ -56,7 +56,7 @@ func (player *VlcPlayer) Start() error {
 }
 
 func (player *VlcPlayer) PlayMovie(moviePath string) {
-	player.commands <- playerCommand{command:fmt.Sprintf("add %s", moviePath), responseLineCount:2}
+	player.commands <- playerCommand{command:fmt.Sprintf(`add "%s"`, moviePath), responseLineCount:2}
 }
 
 func (player *VlcPlayer) Seek(position int) {

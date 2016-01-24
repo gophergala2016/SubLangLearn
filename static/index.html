@@ -13,6 +13,10 @@
     <script src="script.js"></script>
 </head>
 <body>
+<!--<div style="width: 100%; position: fixed; background-color: lightblue">-->
+    <!--Subtitles shift (seconds)-->
+    <!--<select data-bind="options: shifts, value: selectedShift"></select>-->
+<!--</div>-->
 <div data-bind="foreach: subtitles">
     <div data-bind="text: Start, visible: IsStartVisible"  style="color: gray;"></div>
     <div data-bind="html: Text, attr: {'id': Index}" style="cursor: pointer;" onclick="play(event); return false;"></div>

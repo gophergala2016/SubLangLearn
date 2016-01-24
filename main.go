@@ -48,7 +48,7 @@ func main2() {
 		log.Fatalf("Failed to start VLC Player: ", err)
 	}
 	go player.Run()
-	player.PlayMovie(`D:\USERS\FALCON\_video\Frozen.avi`)
+	player.PlayMovie(`D:\USERS\FALCON\_Downloads\FRIENDS (eng+rus+subs)\Season 01\01x01 - The One Where Monica Gets A New Roomate.avi`)
 }
 
 var socketConn *websocket.Conn
@@ -64,7 +64,7 @@ func socket(w http.ResponseWriter, r *http.Request) {
 }
 
 func getSubtitles(w http.ResponseWriter, r *http.Request) {
-	subtitles, _ = ParseSubtitlesFile(`D:\USERS\FALCON\_video\Frozen 2013 720p EN.srt`)
+	subtitles, _ = ParseSubtitlesFile(`D:\USERS\FALCON\_Downloads\FRIENDS (eng+rus+subs)\Season 01\01x01 - The One Where Monica Gets A New Roomate.srt`)
 	content, _ := json.Marshal(subtitles.toJsonSubtitles())
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(content)
@@ -72,6 +72,7 @@ func getSubtitles(w http.ResponseWriter, r *http.Request) {
 
 func play(w http.ResponseWriter, r *http.Request) {
 	index, _ := strconv.Atoi(r.FormValue("Index"))
+	//shift, _ := strconv.Atoi(r.FormValue("Shift"))
 	line := subtitles.Lines[index]
 	parts := strings.SplitN(line.Start.Format("15:04:05"), ":", 3)
 	hours, _ := strconv.Atoi(parts[0])
@@ -79,7 +80,6 @@ func play(w http.ResponseWriter, r *http.Request) {
 	seconds, _ := strconv.Atoi(parts[2])
 	position := hours*3600 + minutes*60 + seconds + 1
 	player.Seek(position)
-	player.pa
 }
 
 func sendProgress() {
@@ -87,12 +87,17 @@ func sendProgress() {
 		select {
 		case position := <-player.Progress:
 			indexes := make([]int, 0, 10)
+			nextIndex := -1
 			for i, line := range subtitles.Lines {
 				if line.StartPosition <= position && (position < line.FinishPosition || (line.StartPosition == position && position == line.FinishPosition))  {
 					indexes = append(indexes, i)
 				} else if position < line.StartPosition {
+					nextIndex = i
 					break
 				}
+			}
+			if len(indexes) == 0 && nextIndex >= 0 {
+				indexes = append(indexes, nextIndex)
 			}
 			if len(indexes) > 0 {
 				socketConn.WriteJSON(indexes)
