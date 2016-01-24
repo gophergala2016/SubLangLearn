@@ -23,7 +23,6 @@ func main() {
 	http.HandleFunc("/getSubtitles", getSubtitles)
 	http.HandleFunc("/play", play)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-	//http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	http.ListenAndServe(":" + strconv.Itoa(port), nil)
 }
 
@@ -48,22 +47,20 @@ func main2() {
 	if err != nil {
 		log.Fatalf("Failed to start VLC Player: ", err)
 	}
+	go player.Run()
 	player.PlayMovie(`D:\USERS\FALCON\_video\Frozen.avi`)
-	//player.Wait()
 }
 
+var socketConn *websocket.Conn
+
 func socket(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
+	var err error
+	socketConn, err = upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("Failed to upgrade http connection to support websockects: ", err)
 		return
 	}
-	defer c.Close()
-	c.WriteMessage(websocket.TextMessage, []byte("Hello"))
-//	for {
-//		messageType, message, err := c.ReadMessage()
-//		log.Printf("recv: %v %s", messageType, message, err)
-//	}
+	go sendProgress()
 }
 
 func getSubtitles(w http.ResponseWriter, r *http.Request) {
@@ -82,4 +79,24 @@ func play(w http.ResponseWriter, r *http.Request) {
 	seconds, _ := strconv.Atoi(parts[2])
 	position := hours*3600 + minutes*60 + seconds + 1
 	player.Seek(position)
+	player.pa
+}
+
+func sendProgress() {
+	for {
+		select {
+		case position := <-player.Progress:
+			indexes := make([]int, 0, 10)
+			for i, line := range subtitles.Lines {
+				if line.StartPosition <= position && (position < line.FinishPosition || (line.StartPosition == position && position == line.FinishPosition))  {
+					indexes = append(indexes, i)
+				} else if position < line.StartPosition {
+					break
+				}
+			}
+			if len(indexes) > 0 {
+				socketConn.WriteJSON(indexes)
+			}
+		}
+	}
 }

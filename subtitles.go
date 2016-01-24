@@ -13,6 +13,8 @@ type SubtitleLine struct {
 	Index int
 	Start time.Time
 	Finish time.Time
+	StartPosition int
+	FinishPosition int
 	Text []string
 }
 
@@ -29,8 +31,10 @@ type JsonSubtitles struct {
 type JsonSubtitleLine struct {
 	Index int
 	Start string
-	Finish string
 	Text string
+	IsStartVisible bool
+
+	start time.Time
 }
 
 var (
@@ -39,13 +43,18 @@ var (
 )
 
 func (line *SubtitleLine) toJsonLine(index int) *JsonSubtitleLine {
-	return &JsonSubtitleLine{Index:index, Start:line.Start.Format("15:04:05"), Finish:line.Finish.Format("15:04:05"), Text:strings.Join(line.Text, "<br>")}
+	return &JsonSubtitleLine{Index:index, Start:line.Start.Format("15:04:05"), start:line.Start, Text:strings.Join(line.Text, "<br>")}
 }
 
 func (subs *Subtitles) toJsonSubtitles() *JsonSubtitles {
 	result := &JsonSubtitles{FileName:filepath.Base(subs.FilePath), Lines:make([]*JsonSubtitleLine, len(subs.Lines))}
+	var lastStart time.Time
 	for i, line := range subs.Lines {
 		result.Lines[i] = line.toJsonLine(i)
+		if lastStart.IsZero() || result.Lines[i].start.Sub(lastStart) > (time.Second * 10) {
+			result.Lines[i].IsStartVisible = true
+			lastStart = result.Lines[i].start
+		}
 	}
 	return result
 }
@@ -57,7 +66,7 @@ func ParseSubtitlesFile(filePath string) (*Subtitles, error) {
 	}
 	defer file.Close()
 	subtitles := &Subtitles{FilePath:filePath}
-	var previousLine, currentLine *SubtitleLine
+	var currentLine *SubtitleLine
 	scanner := bufio.NewScanner(file)
 	isFirstLine := true
 	for scanner.Scan() {
@@ -69,10 +78,7 @@ func ParseSubtitlesFile(filePath string) (*Subtitles, error) {
 
 		if rawLine == "" {
 			if currentLine != nil {
-				if len(subtitles.Lines) == 0 || subtitles.Lines[len(subtitles.Lines)-1] != currentLine {
-					subtitles.Lines = append(subtitles.Lines, currentLine)
-				}
-				previousLine = currentLine
+				subtitles.Lines = append(subtitles.Lines, currentLine)
 				currentLine = nil
 			}
 			continue
@@ -82,23 +88,16 @@ func ParseSubtitlesFile(filePath string) (*Subtitles, error) {
 			currentLine = &SubtitleLine{Index:index}
 		} else if strings.Contains(rawLine, "-->") {
 			parts := strings.SplitN(rawLine, "-->", 2)
-			start := parseTime(parts[0])
-			finish := parseTime(parts[1])
-			if previousLine != nil && start.Sub(previousLine.Finish) < time.Duration(50 * time.Millisecond) {
-				currentLine = previousLine
-				currentLine.Finish = finish
-			} else {
-				currentLine.Start = start
-				currentLine.Finish = finish
-			}
+			currentLine.Start = parseTime(parts[0])
+			currentLine.Finish = parseTime(parts[1])
+			currentLine.StartPosition = GetPosition(currentLine.Start)
+			currentLine.FinishPosition = GetPosition(currentLine.Finish)
 		} else {
 			currentLine.Text = append(currentLine.Text, removeHtml(rawLine))
 		}
 	}
 	if currentLine != nil {
-		if subtitles.Lines[len(subtitles.Lines)-1] != currentLine {
-			subtitles.Lines = append(subtitles.Lines, currentLine)
-		}
+		subtitles.Lines = append(subtitles.Lines, currentLine)
 	}
 	return subtitles, nil
 }
@@ -112,6 +111,14 @@ func parseTime(value string) time.Time {
 		result = result.Add(time.Duration(milliseconds) * time.Millisecond)
 	}
 	return result
+}
+
+func GetPosition(moment time.Time) int {
+	parts := strings.SplitN(moment.Format("15:04:05"), ":", 3)
+	hours, _ := strconv.Atoi(parts[0])
+	minutes, _ := strconv.Atoi(parts[1])
+	seconds, _ := strconv.Atoi(parts[2])
+	return hours*3600 + minutes*60 + seconds + 1
 }
 
 func removeHtml(value string) string {

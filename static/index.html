@@ -14,8 +14,8 @@
 </head>
 <body>
 <div data-bind="foreach: subtitles">
-    <div><span data-bind="text: Start"></span><a href="#" data-bind="attr: {'id': Index}" onclick="play(event); return false;">play</a></div>
-    <div data-bind="html: Text"></div>
+    <div data-bind="text: Start, visible: IsStartVisible"  style="color: gray;"></div>
+    <div data-bind="html: Text, attr: {'id': Index}" style="cursor: pointer;" onclick="play(event); return false;"></div>
 </div>
 </body>
 </html>

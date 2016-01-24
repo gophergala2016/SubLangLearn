@@ -3,9 +3,25 @@ function connectSocketServer() {
   ws = new window[support](location.protocol.replace("http","ws") + "//" + location.host + '/socket');
 
   ws.onmessage = function (evt) {
-    console.log(evt.data);
+      var indexes = JSON.parse(evt.data);
+      for (var i=0; i < indexes.length; i++) {
+          indexes[i] = "#" + indexes[i]
+      }
+      var selector = indexes.join(", ")
+      var newSelected = $(selector)
+      selected.css("background-color", "")
+      newSelected.css("background-color", "GreenYellow")
+      var offset = newSelected.offset();
+      offset.top -= $(window).height() / 2;
+      selected = newSelected
+      $('html, body').animate({
+        scrollTop: offset.top,
+        scrollLeft: offset.left
+      });
   };
 }
+
+var selected = $([]);
 
 var viewModel;
 
